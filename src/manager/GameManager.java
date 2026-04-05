@@ -20,6 +20,7 @@ public class GameManager {
     private CheckDetector checkDetector;
     private Stack<MoveRecord> doneStack = new Stack<>();
     private Stack<MoveRecord> undoStack = new Stack<>();
+    private boolean gameOver = false;
 
     private GameManager() {
         board = new Board();
@@ -47,6 +48,7 @@ public class GameManager {
     }
 
     public boolean makeMove(Position from, Position to) {
+        if (gameOver) return false;
         Piece moving = board.getPiece(from.row, from.col);
         if (moving == null) return false;
         if (moving.isWhite() != isWhiteTurn) return false;
@@ -80,6 +82,11 @@ public class GameManager {
         undoStack.clear();
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(moving, from, to);
+
+        // ⑥ check for checkmate / stalemate
+        if (isCheckmate(isWhiteTurn) || isStalemate(isWhiteTurn)) {
+            gameOver = true;
+        }
         return true;
     }
 
@@ -138,6 +145,28 @@ public class GameManager {
         return filtered;
     }
 
+    /** Returns true if the given side has no legal moves at all. */
+    private boolean hasNoLegalMoves(boolean white) {
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                Piece p = board.getPiece(r, c);
+                if (p != null && p.isWhite() == white) {
+                    if (!getLegalMovesFiltered(new Position(r, c)).isEmpty()) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public boolean isCheckmate(boolean white) {
+        return checkDetector.isInCheck(white) && hasNoLegalMoves(white);
+    }
+
+    public boolean isStalemate(boolean white) {
+        return !checkDetector.isInCheck(white) && hasNoLegalMoves(white);
+    }
+
+    public boolean isGameOver()               { return gameOver; }
     public Board getBoard()                   { return board; }
     public boolean isWhiteTurn()              { return isWhiteTurn; }
     public MoveLogger getLogger()             { return logger; }
