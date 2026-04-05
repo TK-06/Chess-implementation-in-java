@@ -7,6 +7,7 @@ import factory.PieceFactory;
 import observer.CheckDetector;
 import observer.MoveLogger;
 import pieces.Piece;
+import java.util.List;
 import java.util.Stack;
 
 public class GameManager {
@@ -49,14 +50,39 @@ public class GameManager {
         if (moving == null) return false;
         if (moving.isWhite() != isWhiteTurn) return false;
 
+        // ① validate piece's own movement rules
+        List<Position> legal = moving.getLegalMoves(board);
+        boolean valid = legal.stream().anyMatch(p -> p.row == to.row && p.col == to.col);
+        if (!valid) return false;
+
+        // ② save state
         Piece captured = board.getPiece(to.row, to.col);
-        boolean success = board.movePiece(from, to);
-        if (success) {
-            doneStack.push(new MoveRecord(moving, from, to, captured, moving.isHasMoved()));
-            undoStack.clear();
-            isWhiteTurn = !isWhiteTurn;
+        boolean hadMoved = moving.isHasMoved();
+
+        // ③ temporarily make move
+        board.setPiece(moving, to.row,   to.col);
+        board.setPiece(null,   from.row, from.col);
+        moving.setPosition(to.row, to.col);
+
+        // ④ reject if own King ends up in check
+        if (checkDetector.isInCheck(isWhiteTurn)) {
+            board.setPiece(moving,   from.row, from.col);
+            board.setPiece(captured, to.row,   to.col);
+            moving.setPosition(from.row, from.col);
+            moving.setHasMoved(hadMoved);
+            return false;
         }
-        return success;
+
+        // ⑤ finalize
+        moving.setHasMoved(true);
+        doneStack.push(new MoveRecord(moving, from, to, captured, hadMoved));
+        undoStack.clear();
+        isWhiteTurn = !isWhiteTurn;
+        board.notifyObservers(moving, from, to);
+        
+        System.out.println("After temp move — is " + (isWhiteTurn ? "White" : "Black") + " in check? " 
+        	    + checkDetector.isInCheck(isWhiteTurn));
+        return true;
     }
 
     public void undo() {
@@ -77,12 +103,20 @@ public class GameManager {
         MoveRecord next = undoStack.pop();
 
         Piece captured = board.getPiece(next.to.row, next.to.col);
-        board.movePiece(next.from, next.to);
-        doneStack.push(new MoveRecord(next.piece, next.from, next.to, captured, next.hadMoved));
+        boolean hadMoved = next.piece.isHasMoved();
+
+        board.setPiece(next.piece, next.to.row,   next.to.col);
+        board.setPiece(null,       next.from.row, next.from.col);
+        next.piece.setPosition(next.to.row, next.to.col);
+        next.piece.setHasMoved(true);
+
+        doneStack.push(new MoveRecord(next.piece, next.from, next.to, captured, hadMoved));
         isWhiteTurn = !isWhiteTurn;
+        board.notifyObservers(next.piece, next.from, next.to);
     }
 
-    public Board getBoard()       { return board; }
-    public boolean isWhiteTurn()  { return isWhiteTurn; }
-    public MoveLogger getLogger() { return logger; }
+    public Board getBoard()                   { return board; }
+    public boolean isWhiteTurn()              { return isWhiteTurn; }
+    public MoveLogger getLogger()             { return logger; }
+    public CheckDetector getCheckDetector()   { return checkDetector; }
 }

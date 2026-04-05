@@ -1,3 +1,4 @@
+// CheckDetector.java
 package observer;
 
 import board.Position;
@@ -20,8 +21,10 @@ public class CheckDetector implements GameObserver {
         }
     }
 
-    private boolean isInCheck(boolean isWhiteKing) {
+    public boolean isInCheck(boolean isWhiteKing) {
         Position kingPos = null;
+
+        // step 1 — find the king
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
                 Piece p = board.getPiece(r, c);
@@ -32,12 +35,13 @@ public class CheckDetector implements GameObserver {
         }
         if (kingPos == null) return false;
 
+        // step 2 — check if any enemy can reach the king
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
                 Piece p = board.getPiece(r, c);
                 if (p != null && p.isWhite() != isWhiteKing) {
-                    if (p.getLegalMoves(board).contains(kingPos)) {
-                        return true;
+                    for (Position pos : p.getLegalMoves(board)) {
+                        if (pos.equals(kingPos)) return true;
                     }
                 }
             }
