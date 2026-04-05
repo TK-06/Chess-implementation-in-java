@@ -35,4 +35,6 @@ public abstract class Piece {
 		return this.isWhite == other.isWhite;
 	}
 	
+	public void setHasMoved(boolean hasMoved) { this.hasMoved = hasMoved; }
+	public boolean isHasMoved() { return hasMoved; }
 }

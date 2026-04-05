@@ -22,7 +22,7 @@ public class Bishop extends Piece{
 				Piece target= board.getPiece(nr, nc);
 				if(target == null) {
 					legalMoves.add(new Position(nr,nc));
-				}else if(!target.isSameColor(target)) {
+				}else if(!target.isSameColor(this)) {
 					legalMoves.add(new Position(nr,nc));
 					break;
 				}else {

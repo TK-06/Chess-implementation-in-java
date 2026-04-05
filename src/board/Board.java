@@ -7,6 +7,7 @@ import pieces.Piece;
 public class Board {
 	private Piece[][] table = new Piece[8][8];
 	private ArrayList<GameObserver> observers = new ArrayList<>();
+	public ArrayList<Position> highlights = new ArrayList<>();
 	
 	public void addObserver (GameObserver o) {observers.add(o);}
 	public void removeObserver (GameObserver o) {observers.remove(o);}

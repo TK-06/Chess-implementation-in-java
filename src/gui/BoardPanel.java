@@ -10,16 +10,18 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayList;
 
 public class BoardPanel extends JPanel {
 
     private static final int TILE_SIZE = 80;
     private Board board;
     private GameManager gm;
-    private Position selected = null;  // currently selected square
+    private Position selected = null;
+    private ArrayList<Position> highlights = new ArrayList<>();
 
     public BoardPanel() {
-        gm = GameManager.getInstance();
+        gm    = GameManager.getInstance();
         board = gm.getBoard();
         setPreferredSize(new Dimension(8 * TILE_SIZE, 8 * TILE_SIZE));
 
@@ -27,7 +29,7 @@ public class BoardPanel extends JPanel {
             @Override
             public void mouseClicked(MouseEvent e) {
                 int col = e.getX() / TILE_SIZE;
-                int row = 7 - (e.getY() / TILE_SIZE);
+                int row = 7 - (e.getY() / TILE_SIZE);  // flip Y
                 handleClick(row, col);
             }
         });
@@ -35,25 +37,27 @@ public class BoardPanel extends JPanel {
 
     private void handleClick(int row, int col) {
         if (selected == null) {
-            // first click — select a piece
             Piece p = board.getPiece(row, col);
             if (p != null && p.isWhite() == gm.isWhiteTurn()) {
                 selected = new Position(row, col);
+                highlights = (ArrayList<Position>) p.getLegalMoves(board);  // get legal moves
             }
         } else {
-            // second click — attempt move
             gm.makeMove(selected, new Position(row, col));
             selected = null;
-            repaint();  // redraw board after move
+            highlights.clear();  // clear highlights after move
+            repaint();
         }
+        repaint();  // repaint on first click too so highlights show
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         drawBoard(g);
-        drawPieces(g);
+        drawHighlights(g);  // ← after board, before pieces
         drawSelected(g);
+        drawPieces(g);
     }
 
     private void drawBoard(Graphics g) {
@@ -61,7 +65,6 @@ public class BoardPanel extends JPanel {
             for (int c = 0; c < 8; c++) {
                 if ((r + c) % 2 == 0) g.setColor(new Color(240, 217, 181));
                 else                   g.setColor(new Color(181, 136, 99));
-                // flip: draw row 0 at the bottom
                 int drawY = (7 - r) * TILE_SIZE;
                 g.fillRect(c * TILE_SIZE, drawY, TILE_SIZE, TILE_SIZE);
             }
@@ -76,7 +79,7 @@ public class BoardPanel extends JPanel {
                 Piece p = board.getPiece(r, c);
                 if (p != null) {
                     String symbol = getSymbol(p);
-                    int drawY = (7 - r) * TILE_SIZE;  // flip here too
+                    int drawY = (7 - r) * TILE_SIZE;
                     int x = c * TILE_SIZE + (TILE_SIZE - fm.stringWidth(symbol)) / 2;
                     int y = drawY + (TILE_SIZE - fm.getHeight()) / 2 + fm.getAscent();
                     g.setColor(Color.BLACK);
@@ -89,7 +92,7 @@ public class BoardPanel extends JPanel {
     private void drawSelected(Graphics g) {
         if (selected == null) return;
         g.setColor(new Color(0, 255, 0, 80));
-        int drawY = (7 - selected.row) * TILE_SIZE;  // flip here too
+        int drawY = (7 - selected.row) * TILE_SIZE;
         g.fillRect(selected.col * TILE_SIZE, drawY, TILE_SIZE, TILE_SIZE);
     }
 
@@ -103,6 +106,14 @@ public class BoardPanel extends JPanel {
             case "Knight": return w ? "♘" : "♞";
             case "Pawn":   return w ? "♙" : "♟";
             default:       return "?";
+        }
+    }
+    
+    private void drawHighlights(Graphics g) {
+        g.setColor(new Color(0, 255, 0, 80));  // transparent green
+        for (Position p : highlights) {
+            int drawY = (7 - p.row) * TILE_SIZE;
+            g.fillRect(p.col * TILE_SIZE, drawY, TILE_SIZE, TILE_SIZE);
         }
     }
 }
