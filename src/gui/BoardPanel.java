@@ -11,6 +11,7 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.List;
 
 public class BoardPanel extends JPanel {
 
@@ -18,7 +19,7 @@ public class BoardPanel extends JPanel {
     private Board board;
     private GameManager gm;
     private Position selected = null;
-    private ArrayList<Position> highlights = new ArrayList<>();
+    private List<Position> highlights = new ArrayList<>();
 
     public BoardPanel() {
         gm    = GameManager.getInstance();
@@ -36,11 +37,12 @@ public class BoardPanel extends JPanel {
     }
 
     private void handleClick(int row, int col) {
+        if (row < 0 || row > 7 || col < 0 || col > 7) return;
         if (selected == null) {
             Piece p = board.getPiece(row, col);
             if (p != null && p.isWhite() == gm.isWhiteTurn()) {
                 selected = new Position(row, col);
-                highlights = (ArrayList<Position>) p.getLegalMoves(board);  // get legal moves
+                highlights = gm.getLegalMovesFiltered(selected);  // only truly legal moves
             }
         } else {
             gm.makeMove(selected, new Position(row, col));
@@ -109,6 +111,11 @@ public class BoardPanel extends JPanel {
         }
     }
     
+    public void clearSelection() {
+        selected = null;
+        highlights.clear();
+    }
+
     private void drawHighlights(Graphics g) {
         g.setColor(new Color(0, 255, 0, 80));  // transparent green
         for (Position p : highlights) {

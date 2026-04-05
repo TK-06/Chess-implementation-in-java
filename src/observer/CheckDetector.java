@@ -25,11 +25,13 @@ public class CheckDetector implements GameObserver {
         Position kingPos = null;
 
         // step 1 — find the king
+        outer:
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
                 Piece p = board.getPiece(r, c);
                 if (p != null && p.isWhite() == isWhiteKing && p.getType().equals("King")) {
                     kingPos = new Position(r, c);
+                    break outer;
                 }
             }
         }

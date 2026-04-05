@@ -7,6 +7,7 @@ import factory.PieceFactory;
 import observer.CheckDetector;
 import observer.MoveLogger;
 import pieces.Piece;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
@@ -79,9 +80,6 @@ public class GameManager {
         undoStack.clear();
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(moving, from, to);
-        
-        System.out.println("After temp move — is " + (isWhiteTurn ? "White" : "Black") + " in check? " 
-        	    + checkDetector.isInCheck(isWhiteTurn));
         return true;
     }
 
@@ -113,6 +111,31 @@ public class GameManager {
         doneStack.push(new MoveRecord(next.piece, next.from, next.to, captured, hadMoved));
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(next.piece, next.from, next.to);
+    }
+
+    public List<Position> getLegalMovesFiltered(Position from) {
+        Piece moving = board.getPiece(from.row, from.col);
+        if (moving == null) return new ArrayList<>();
+
+        List<Position> filtered = new ArrayList<>();
+        for (Position to : moving.getLegalMoves(board)) {
+            Piece captured = board.getPiece(to.row, to.col);
+            boolean hadMoved = moving.isHasMoved();
+
+            board.setPiece(moving,   to.row,   to.col);
+            board.setPiece(null,     from.row, from.col);
+            moving.setPosition(to.row, to.col);
+
+            if (!checkDetector.isInCheck(moving.isWhite())) {
+                filtered.add(to);
+            }
+
+            board.setPiece(moving,   from.row, from.col);
+            board.setPiece(captured, to.row,   to.col);
+            moving.setPosition(from.row, from.col);
+            moving.setHasMoved(hadMoved);
+        }
+        return filtered;
     }
 
     public Board getBoard()                   { return board; }

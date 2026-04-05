@@ -33,11 +33,13 @@ public class ChessGUI extends JFrame implements GameObserver {
 
         undoBtn.addActionListener(e -> {
             GameManager.getInstance().undo();
+            boardPanel.clearSelection();
             boardPanel.repaint();
             updateStatus();
         });
         redoBtn.addActionListener(e -> {
             GameManager.getInstance().redo();
+            boardPanel.clearSelection();
             boardPanel.repaint();
             updateStatus();
         });
