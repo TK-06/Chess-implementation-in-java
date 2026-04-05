@@ -32,4 +32,5 @@ public class Board {
 	public Piece getPiece(int r, int c) {
 		return table[r][c];
 	}
+	public void setPiece(Piece p, int row, int col) { table[row][col] = p; }
 }
