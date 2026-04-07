@@ -22,6 +22,11 @@ public class GameManager {
     private Stack<MoveRecord> undoStack = new Stack<>();
     private boolean gameOver = false;
 
+    // Promotion state
+    private boolean pendingPromotion = false;
+    private Position promotionSquare  = null;
+    private boolean promotionIsWhite  = false;
+
     private GameManager() {
         board = new Board();
         isWhiteTurn = true;
@@ -49,6 +54,7 @@ public class GameManager {
 
     public boolean makeMove(Position from, Position to) {
         if (gameOver) return false;
+        if (pendingPromotion) return false;   // must resolve promotion first
         Piece moving = board.getPiece(from.row, from.col);
         if (moving == null) return false;
         if (moving.isWhite() != isWhiteTurn) return false;
@@ -83,12 +89,37 @@ public class GameManager {
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(moving, from, to);
 
-        // ⑥ check for checkmate / stalemate
-        if (isCheckmate(isWhiteTurn) || isStalemate(isWhiteTurn)) {
+        // ⑥ pawn promotion — pause game until player picks a piece
+        if (moving.getType().equals("Pawn")) {
+            int backRank = moving.isWhite() ? 7 : 0;
+            if (to.row == backRank) {
+                pendingPromotion = true;
+                promotionSquare  = new Position(to.row, to.col);
+                promotionIsWhite = moving.isWhite();
+            }
+        }
+
+        // ⑦ check for checkmate / stalemate (only after promotion is resolved)
+        if (!pendingPromotion && (isCheckmate(isWhiteTurn) || isStalemate(isWhiteTurn))) {
             gameOver = true;
         }
         return true;
     }
+
+    /** Called by BoardPanel when the player clicks a promotion choice. */
+    public void promote(String pieceType) {
+        if (!pendingPromotion) return;
+        Piece promoted = PieceFactory.create(pieceType,
+                promotionSquare.row, promotionSquare.col, promotionIsWhite);
+        promoted.setHasMoved(true);
+        board.setPiece(promoted, promotionSquare.row, promotionSquare.col);
+        pendingPromotion = false;
+        promotionSquare  = null;
+    }
+
+    public boolean isPendingPromotion()  { return pendingPromotion; }
+    public Position getPromotionSquare() { return promotionSquare; }
+    public boolean isPromotionWhite()    { return promotionIsWhite; }
 
     public void undo() {
         if (doneStack.isEmpty()) return;

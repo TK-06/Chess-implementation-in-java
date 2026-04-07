@@ -12,6 +12,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.RenderingHints;
 
 public class BoardPanel extends JPanel {
 
@@ -38,6 +39,13 @@ public class BoardPanel extends JPanel {
 
     private void handleClick(int row, int col) {
         if (row < 0 || row > 7 || col < 0 || col > 7) return;
+
+        // While a pawn is awaiting promotion, only the picker is active
+        if (gm.isPendingPromotion()) {
+            handlePromotionClick(row, col);
+            return;
+        }
+
         if (selected == null) {
             Piece p = board.getPiece(row, col);
             if (p != null && p.isWhite() == gm.isWhiteTurn()) {
@@ -53,13 +61,34 @@ public class BoardPanel extends JPanel {
         repaint();  // repaint on first click too so highlights show
     }
 
+    /** Order of pieces shown in the promotion picker (matches chess.com). */
+    private static final String[] PROMO_CHOICES = {"Queen", "Knight", "Rook", "Bishop"};
+
+    private void handlePromotionClick(int row, int col) {
+        Position ps = gm.getPromotionSquare();
+        if (col != ps.col) return;  // click must be in the promotion column
+
+        boolean isWhite  = gm.isPromotionWhite();
+        int     startRow = isWhite ? 7 : 0;
+        int     dir      = isWhite ? -1 : 1;  // white: go down visually; black: go up
+
+        for (int i = 0; i < PROMO_CHOICES.length; i++) {
+            if (row == startRow + i * dir) {
+                gm.promote(PROMO_CHOICES[i]);
+                repaint();
+                return;
+            }
+        }
+    }
+
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         drawBoard(g);
-        drawHighlights(g);  // ← after board, before pieces
+        drawHighlights(g);
         drawSelected(g);
         drawPieces(g);
+        if (gm.isPendingPromotion()) drawPromotionOverlay(g);
     }
 
     private void drawBoard(Graphics g) {
@@ -114,6 +143,55 @@ public class BoardPanel extends JPanel {
     public void clearSelection() {
         selected = null;
         highlights.clear();
+    }
+
+    /** Draws a chess.com-style vertical picker at the promotion column. */
+    private void drawPromotionOverlay(Graphics g) {
+        Position ps      = gm.getPromotionSquare();
+        boolean isWhite  = gm.isPromotionWhite();
+        int     startRow = isWhite ? 7 : 0;
+        int     dir      = isWhite ? -1 : 1;
+
+        // Dim the rest of the board
+        g.setColor(new Color(0, 0, 0, 120));
+        g.fillRect(0, 0, getWidth(), getHeight());
+
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        g.setFont(new Font("Serif", Font.PLAIN, 52));
+        FontMetrics fm = g.getFontMetrics();
+
+        for (int i = 0; i < PROMO_CHOICES.length; i++) {
+            int r     = startRow + i * dir;
+            int drawX = ps.col * TILE_SIZE;
+            int drawY = (7 - r) * TILE_SIZE;
+
+            // Tile background — white pieces get light tile, black get dark
+            Color bg     = isWhite ? new Color(240, 217, 181) : new Color(58, 71, 93);
+            Color border = new Color(80, 80, 80, 180);
+            g.setColor(bg);
+            g2.fillRoundRect(drawX + 3, drawY + 3, TILE_SIZE - 6, TILE_SIZE - 6, 12, 12);
+            g.setColor(border);
+            g2.drawRoundRect(drawX + 3, drawY + 3, TILE_SIZE - 6, TILE_SIZE - 6, 12, 12);
+
+            // Piece symbol
+            String sym = getSymbolForType(PROMO_CHOICES[i], isWhite);
+            int x = drawX + (TILE_SIZE - fm.stringWidth(sym)) / 2;
+            int y = drawY + (TILE_SIZE - fm.getHeight()) / 2 + fm.getAscent();
+            g.setColor(isWhite ? Color.BLACK : Color.WHITE);
+            g.drawString(sym, x, y);
+        }
+    }
+
+    private String getSymbolForType(String type, boolean isWhite) {
+        switch (type) {
+            case "Queen":  return isWhite ? "♕" : "♛";
+            case "Rook":   return isWhite ? "♖" : "♜";
+            case "Bishop": return isWhite ? "♗" : "♝";
+            case "Knight": return isWhite ? "♘" : "♞";
+            default:       return "?";
+        }
     }
 
     private void drawHighlights(Graphics g) {
