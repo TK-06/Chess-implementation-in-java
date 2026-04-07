@@ -21,6 +21,11 @@ public class GameManager {
     private Stack<MoveRecord> doneStack = new Stack<>();
     private Stack<MoveRecord> undoStack = new Stack<>();
 
+    // Promotion state
+    private boolean pendingPromotion = false;
+    private Position promotionSquare  = null;
+    private boolean promotionIsWhite  = false;
+
     private GameManager() {
         board = new Board();
         isWhiteTurn = true;
@@ -47,6 +52,7 @@ public class GameManager {
     }
 
     public boolean makeMove(Position from, Position to) {
+        if (pendingPromotion) return false;   // must resolve promotion first
         Piece moving = board.getPiece(from.row, from.col);
         if (moving == null) return false;
         if (moving.isWhite() != isWhiteTurn) return false;
@@ -80,8 +86,33 @@ public class GameManager {
         undoStack.clear();
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(moving, from, to);
+
+        // ⑥ pawn promotion — pause game until player picks a piece
+        if (moving.getType().equals("Pawn")) {
+            int backRank = moving.isWhite() ? 7 : 0;
+            if (to.row == backRank) {
+                pendingPromotion = true;
+                promotionSquare  = new Position(to.row, to.col);
+                promotionIsWhite = moving.isWhite();
+            }
+        }
         return true;
     }
+
+    /** Called by BoardPanel when the player clicks a promotion choice. */
+    public void promote(String pieceType) {
+        if (!pendingPromotion) return;
+        Piece promoted = PieceFactory.create(pieceType,
+                promotionSquare.row, promotionSquare.col, promotionIsWhite);
+        promoted.setHasMoved(true);
+        board.setPiece(promoted, promotionSquare.row, promotionSquare.col);
+        pendingPromotion = false;
+        promotionSquare  = null;
+    }
+
+    public boolean isPendingPromotion()  { return pendingPromotion; }
+    public Position getPromotionSquare() { return promotionSquare; }
+    public boolean isPromotionWhite()    { return promotionIsWhite; }
 
     public void undo() {
         if (doneStack.isEmpty()) return;
