@@ -109,12 +109,30 @@ public class GameManager {
     /** Called by BoardPanel when the player clicks a promotion choice. */
     public void promote(String pieceType) {
         if (!pendingPromotion) return;
-        Piece promoted = PieceFactory.create(pieceType,
-                promotionSquare.row, promotionSquare.col, promotionIsWhite);
+        int row = promotionSquare.row;
+        int col = promotionSquare.col;
+
+        Piece promoted = PieceFactory.create(pieceType, row, col, promotionIsWhite);
         promoted.setHasMoved(true);
-        board.setPiece(promoted, promotionSquare.row, promotionSquare.col);
+        board.setPiece(promoted, row, col);
+
+        System.out.println("Pawn promoted to " + pieceType
+                + " (" + row + "," + col + ")");
+
         pendingPromotion = false;
         promotionSquare  = null;
+
+        // Check for checkmate / stalemate now that the promoted piece is on the board
+        if (isCheckmate(isWhiteTurn)) {
+            gameOver = true;
+            System.out.println((isWhiteTurn ? "Black" : "White") + " is in CHECKMATE! "
+                    + (isWhiteTurn ? "White" : "Black") + " wins!");
+        } else if (isStalemate(isWhiteTurn)) {
+            gameOver = true;
+            System.out.println("STALEMATE! It's a draw.");
+        } else if (checkDetector.isInCheck(isWhiteTurn)) {
+            System.out.println((isWhiteTurn ? "Black" : "White") + " is in CHECK!");
+        }
     }
 
     public boolean isPendingPromotion()  { return pendingPromotion; }

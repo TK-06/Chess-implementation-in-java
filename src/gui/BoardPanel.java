@@ -64,6 +64,10 @@ public class BoardPanel extends JPanel {
     /** Order of pieces shown in the promotion picker (matches chess.com). */
     private static final String[] PROMO_CHOICES = {"Queen", "Knight", "Rook", "Bishop"};
 
+    /** Optional callback invoked after promotion completes (used to refresh status label). */
+    private Runnable onPromotionComplete;
+    public void setOnPromotionComplete(Runnable r) { onPromotionComplete = r; }
+
     private void handlePromotionClick(int row, int col) {
         Position ps = gm.getPromotionSquare();
         if (col != ps.col) return;  // click must be in the promotion column
@@ -76,6 +80,7 @@ public class BoardPanel extends JPanel {
             if (row == startRow + i * dir) {
                 gm.promote(PROMO_CHOICES[i]);
                 repaint();
+                if (onPromotionComplete != null) onPromotionComplete.run();
                 return;
             }
         }

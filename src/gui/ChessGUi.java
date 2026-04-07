@@ -25,6 +25,7 @@ public class ChessGUI extends JFrame implements GameObserver {
         add(statusLabel, BorderLayout.NORTH);
 
         boardPanel = new BoardPanel();
+        boardPanel.setOnPromotionComplete(this::updateStatus);
         add(boardPanel, BorderLayout.CENTER);
 
         // undo / redo buttons
