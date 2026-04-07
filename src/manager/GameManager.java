@@ -260,8 +260,16 @@ public class GameManager {
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++) {
                 Piece p = board.getPiece(r, c);
-                if (p != null && p.isWhite() == white
-                        && !getLegalMovesFiltered(new Position(r, c)).isEmpty()) return false;
+                if (p != null && p.isWhite() == white) {
+                    List<Position> moves = getLegalMovesFiltered(new Position(r, c));
+                    if (!moves.isEmpty()) {
+                        System.out.println("[DEBUG] " + p.getType()
+                                + " at (" + r + "," + c + ") has " + moves.size() + " legal move(s):");
+                        for (Position m : moves)
+                            System.out.println("  -> (" + m.row + "," + m.col + ")");
+                        return false;
+                    }
+                }
             }
         return true;
     }
