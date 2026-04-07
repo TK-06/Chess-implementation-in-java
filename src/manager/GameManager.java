@@ -122,16 +122,19 @@ public class GameManager {
         pendingPromotion = false;
         promotionSquare  = null;
 
+        // isWhiteTurn = the side that must move next; if checkmated, they lost
+        String currentSide = isWhiteTurn ? "White" : "Black";
+        String winningSide  = isWhiteTurn ? "Black" : "White";
+
         // Check for checkmate / stalemate now that the promoted piece is on the board
         if (isCheckmate(isWhiteTurn)) {
             gameOver = true;
-            System.out.println((isWhiteTurn ? "Black" : "White") + " is in CHECKMATE! "
-                    + (isWhiteTurn ? "White" : "Black") + " wins!");
+            System.out.println("CHECKMATE! " + winningSide + " wins!");
         } else if (isStalemate(isWhiteTurn)) {
             gameOver = true;
             System.out.println("STALEMATE! It's a draw.");
         } else if (checkDetector.isInCheck(isWhiteTurn)) {
-            System.out.println((isWhiteTurn ? "Black" : "White") + " is in CHECK!");
+            System.out.println(currentSide + " King is in CHECK!");
         }
     }
 

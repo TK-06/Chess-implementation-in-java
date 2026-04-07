@@ -55,30 +55,37 @@ public class ChessGUI extends JFrame implements GameObserver {
         setVisible(true);
     }
 
+    private boolean gameOverShown = false;
+
     private void updateStatus() {
         GameManager gm = GameManager.getInstance();
         boolean nextIsWhite = gm.isWhiteTurn();
-        String side = nextIsWhite ? "White" : "Black";
-        String winner = nextIsWhite ? "Black" : "White";
+        String currentSide = nextIsWhite ? "White" : "Black";
+        String winningSide  = nextIsWhite ? "Black" : "White";
 
-        if (gm.isCheckmate(nextIsWhite)) {
-            statusLabel.setText("CHECKMATE! " + winner + " wins!");
-            statusLabel.setForeground(new Color(180, 0, 0));
-            JOptionPane.showMessageDialog(this,
-                    "Checkmate! " + winner + " wins!",
-                    "Game Over", JOptionPane.INFORMATION_MESSAGE);
-        } else if (gm.isStalemate(nextIsWhite)) {
-            statusLabel.setText("STALEMATE! Draw!");
-            statusLabel.setForeground(new Color(0, 100, 180));
-            JOptionPane.showMessageDialog(this,
-                    "Stalemate! The game is a draw.",
-                    "Game Over", JOptionPane.INFORMATION_MESSAGE);
-        } else if (gm.getCheckDetector().isInCheck(nextIsWhite)) {
-            statusLabel.setText(side + " is in CHECK!");
-            statusLabel.setForeground(Color.RED);
-        } else {
-            statusLabel.setText(side + "'s turn");
-            statusLabel.setForeground(Color.BLACK);
+        if (gm.isGameOver() && !gameOverShown) {
+            gameOverShown = true;
+            if (gm.isCheckmate(nextIsWhite)) {
+                statusLabel.setText("CHECKMATE! " + winningSide + " wins!");
+                statusLabel.setForeground(new Color(180, 0, 0));
+                JOptionPane.showMessageDialog(this,
+                        "GAME ENDS!\n" + winningSide + " WIN!",
+                        "Game Over", JOptionPane.INFORMATION_MESSAGE);
+            } else if (gm.isStalemate(nextIsWhite)) {
+                statusLabel.setText("STALEMATE! It's a draw!");
+                statusLabel.setForeground(new Color(0, 100, 180));
+                JOptionPane.showMessageDialog(this,
+                        "GAME ENDS!\nIt's a draw!",
+                        "Game Over", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } else if (!gm.isGameOver()) {
+            if (gm.getCheckDetector().isInCheck(nextIsWhite)) {
+                statusLabel.setText(currentSide + " King is in CHECK!");
+                statusLabel.setForeground(Color.RED);
+            } else {
+                statusLabel.setText(currentSide + "'s turn");
+                statusLabel.setForeground(Color.BLACK);
+            }
         }
     }
 

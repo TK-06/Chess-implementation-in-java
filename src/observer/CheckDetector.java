@@ -17,7 +17,7 @@ public class CheckDetector implements GameObserver {
     public void moveMade(Piece p, Position from, Position to) {
         boolean opponentIsWhite = !p.isWhite();
         if (isInCheck(opponentIsWhite)) {
-            System.out.println((opponentIsWhite ? "White" : "Black") + " is in check!");
+            System.out.println((opponentIsWhite ? "White" : "Black") + " King is in CHECK!");
         }
     }
 
