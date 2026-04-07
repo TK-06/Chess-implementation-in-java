@@ -65,19 +65,23 @@ public class ChessGUI extends JFrame implements GameObserver {
 
         if (gm.isGameOver() && !gameOverShown) {
             gameOverShown = true;
+            String message;
             if (gm.isCheckmate(nextIsWhite)) {
                 statusLabel.setText("CHECKMATE! " + winningSide + " wins!");
                 statusLabel.setForeground(new Color(180, 0, 0));
-                JOptionPane.showMessageDialog(this,
-                        "GAME ENDS!\n" + winningSide + " WIN!",
-                        "Game Over", JOptionPane.INFORMATION_MESSAGE);
-            } else if (gm.isStalemate(nextIsWhite)) {
+                message = "GAME ENDS!\n" + winningSide + " WIN!";
+            } else {
                 statusLabel.setText("STALEMATE! It's a draw!");
                 statusLabel.setForeground(new Color(0, 100, 180));
-                JOptionPane.showMessageDialog(this,
-                        "GAME ENDS!\nIt's a draw!",
-                        "Game Over", JOptionPane.INFORMATION_MESSAGE);
+                message = "GAME ENDS!\nIt's a draw!";
             }
+            Object[] options = {"New Game", "Close"};
+            int choice = JOptionPane.showOptionDialog(this,
+                    message, "Game Over",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE,
+                    null, options, options[0]);
+            if (choice == 0) startNewGame();
         } else if (!gm.isGameOver()) {
             if (gm.getCheckDetector().isInCheck(nextIsWhite)) {
                 statusLabel.setText(currentSide + " King is in CHECK!");
@@ -87,6 +91,15 @@ public class ChessGUI extends JFrame implements GameObserver {
                 statusLabel.setForeground(Color.BLACK);
             }
         }
+    }
+
+    private void startNewGame() {
+        GameManager.getInstance().resetGame();
+        gameOverShown = false;
+        boardPanel.clearSelection();
+        boardPanel.repaint();
+        statusLabel.setText("White's turn");
+        statusLabel.setForeground(Color.BLACK);
     }
 
     @Override

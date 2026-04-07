@@ -218,6 +218,22 @@ public class GameManager {
         return !checkDetector.isInCheck(white) && hasNoLegalMoves(white);
     }
 
+    public void resetGame() {
+        // Clear all pieces off the board
+        for (int r = 0; r < 8; r++)
+            for (int c = 0; c < 8; c++)
+                board.setPiece(null, r, c);
+
+        doneStack.clear();
+        undoStack.clear();
+        isWhiteTurn      = true;
+        gameOver         = false;
+        pendingPromotion = false;
+        promotionSquare  = null;
+        logger.clear();
+        initBoard();
+    }
+
     public boolean isGameOver()               { return gameOver; }
     public Board getBoard()                   { return board; }
     public boolean isWhiteTurn()              { return isWhiteTurn; }
