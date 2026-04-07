@@ -40,6 +40,12 @@ public class Pawn extends Piece {
             }
         }
 
+        // 4. en passant — the board tracks the square a pawn just skipped over
+        Position ep = board.getEnPassantTarget();
+        if (ep != null && ep.row == r + dir && Math.abs(ep.col - c) == 1) {
+            legalMoves.add(ep);
+        }
+
         return legalMoves;
     }
 

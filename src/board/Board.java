@@ -9,6 +9,10 @@ public class Board {
 
     private Piece[][] table = new Piece[8][8];
     private ArrayList<GameObserver> observers = new ArrayList<>();
+    private Position enPassantTarget = null;  // square a pawn can capture en passant
+
+    public Position getEnPassantTarget()          { return enPassantTarget; }
+    public void setEnPassantTarget(Position p)    { enPassantTarget = p; }
 
     public void addObserver(GameObserver o)    { observers.add(o); }
     public void removeObserver(GameObserver o) { observers.remove(o); }

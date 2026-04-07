@@ -13,6 +13,8 @@ import java.util.Stack;
 
 public class GameManager {
 
+    public static final String VERSION = "1.2.0";
+
     private static GameManager instance = null;
     private Board board;
     private boolean isWhiteTurn;
@@ -35,6 +37,7 @@ public class GameManager {
         board.addObserver(logger);
         board.addObserver(checkDetector);
         initBoard();
+        System.out.println("VERSION: " + VERSION);
     }
 
     public static GameManager getInstance() {
@@ -54,7 +57,7 @@ public class GameManager {
 
     public boolean makeMove(Position from, Position to) {
         if (gameOver) return false;
-        if (pendingPromotion) return false;   // must resolve promotion first
+        if (pendingPromotion) return false;
         Piece moving = board.getPiece(from.row, from.col);
         if (moving == null) return false;
         if (moving.isWhite() != isWhiteTurn) return false;
@@ -64,14 +67,28 @@ public class GameManager {
         boolean valid = legal.stream().anyMatch(p -> p.row == to.row && p.col == to.col);
         if (!valid) return false;
 
-        // ② save state
+        // ② save state & detect en passant
         Piece captured = board.getPiece(to.row, to.col);
         boolean hadMoved = moving.isHasMoved();
+        Position prevEP  = board.getEnPassantTarget();
+
+        boolean isEnPassant = moving.getType().equals("Pawn")
+                && prevEP != null
+                && to.row == prevEP.row && to.col == prevEP.col
+                && captured == null;                // en passant square is always empty
+        Piece  epPawn = null;
+        int    epRow  = -1, epCol = -1;
+        if (isEnPassant) {
+            epRow  = from.row;   // captured pawn sits on same rank as moving pawn
+            epCol  = to.col;
+            epPawn = board.getPiece(epRow, epCol);
+        }
 
         // ③ temporarily make move
         board.setPiece(moving, to.row,   to.col);
         board.setPiece(null,   from.row, from.col);
         moving.setPosition(to.row, to.col);
+        if (isEnPassant) board.setPiece(null, epRow, epCol);
 
         // ④ reject if own King ends up in check
         if (checkDetector.isInCheck(isWhiteTurn)) {
@@ -79,17 +96,26 @@ public class GameManager {
             board.setPiece(captured, to.row,   to.col);
             moving.setPosition(from.row, from.col);
             moving.setHasMoved(hadMoved);
+            if (isEnPassant) board.setPiece(epPawn, epRow, epCol);
             return false;
         }
 
-        // ⑤ finalize
+        // ⑤ update en passant target for next move
+        if (moving.getType().equals("Pawn") && Math.abs(to.row - from.row) == 2) {
+            board.setEnPassantTarget(new Position((from.row + to.row) / 2, from.col));
+        } else {
+            board.setEnPassantTarget(null);
+        }
+
+        // ⑥ finalize
         moving.setHasMoved(true);
-        doneStack.push(new MoveRecord(moving, from, to, captured, hadMoved));
+        doneStack.push(new MoveRecord(moving, from, to, captured, hadMoved,
+                epPawn, epRow, epCol, prevEP));
         undoStack.clear();
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(moving, from, to);
 
-        // ⑥ pawn promotion — pause game until player picks a piece
+        // ⑦ pawn promotion — pause game until player picks a piece
         if (moving.getType().equals("Pawn")) {
             int backRank = moving.isWhite() ? 7 : 0;
             if (to.row == backRank) {
@@ -99,7 +125,7 @@ public class GameManager {
             }
         }
 
-        // ⑦ check for checkmate / stalemate (only after promotion is resolved)
+        // ⑧ check for checkmate / stalemate (only after promotion is resolved)
         if (!pendingPromotion && (isCheckmate(isWhiteTurn) || isStalemate(isWhiteTurn))) {
             gameOver = true;
         }
@@ -116,17 +142,14 @@ public class GameManager {
         promoted.setHasMoved(true);
         board.setPiece(promoted, row, col);
 
-        System.out.println("Pawn promoted to " + pieceType
-                + " (" + row + "," + col + ")");
+        System.out.println("Pawn promoted to " + pieceType + " (" + row + "," + col + ")");
 
         pendingPromotion = false;
         promotionSquare  = null;
 
-        // isWhiteTurn = the side that must move next; if checkmated, they lost
         String currentSide = isWhiteTurn ? "White" : "Black";
         String winningSide  = isWhiteTurn ? "Black" : "White";
 
-        // Check for checkmate / stalemate now that the promoted piece is on the board
         if (isCheckmate(isWhiteTurn)) {
             gameOver = true;
             System.out.println("CHECKMATE! " + winningSide + " wins!");
@@ -143,6 +166,11 @@ public class GameManager {
     public boolean isPromotionWhite()    { return promotionIsWhite; }
 
     public void undo() {
+        // Cancel any pending promotion and undo the pawn move
+        if (pendingPromotion) {
+            pendingPromotion = false;
+            promotionSquare  = null;
+        }
         if (doneStack.isEmpty()) return;
         MoveRecord last = doneStack.pop();
 
@@ -151,23 +179,47 @@ public class GameManager {
         last.piece.setPosition(last.from.row, last.from.col);
         last.piece.setHasMoved(last.hadMoved);
 
+        // Restore en-passant captured pawn
+        if (last.epPawn != null) {
+            board.setPiece(last.epPawn, last.epRow, last.epCol);
+            last.epPawn.setPosition(last.epRow, last.epCol);
+        }
+
+        // Restore the en passant target that was active before this move
+        board.setEnPassantTarget(last.prevEnPassantTarget);
+
         undoStack.push(last);
         isWhiteTurn = !isWhiteTurn;
+        gameOver    = false;   // allow continuing after undo
     }
 
     public void redo() {
         if (undoStack.isEmpty()) return;
         MoveRecord next = undoStack.pop();
 
-        Piece captured = board.getPiece(next.to.row, next.to.col);
-        boolean hadMoved = next.piece.isHasMoved();
+        Piece    captured = board.getPiece(next.to.row, next.to.col);
+        boolean  hadMoved = next.piece.isHasMoved();
+        Position prevEP   = board.getEnPassantTarget();
 
         board.setPiece(next.piece, next.to.row,   next.to.col);
         board.setPiece(null,       next.from.row, next.from.col);
         next.piece.setPosition(next.to.row, next.to.col);
         next.piece.setHasMoved(true);
 
-        doneStack.push(new MoveRecord(next.piece, next.from, next.to, captured, hadMoved));
+        // Re-apply en passant capture
+        if (next.epPawn != null) board.setPiece(null, next.epRow, next.epCol);
+
+        // Restore en passant target
+        if (next.piece.getType().equals("Pawn")
+                && Math.abs(next.to.row - next.from.row) == 2) {
+            board.setEnPassantTarget(
+                    new Position((next.from.row + next.to.row) / 2, next.from.col));
+        } else {
+            board.setEnPassantTarget(null);
+        }
+
+        doneStack.push(new MoveRecord(next.piece, next.from, next.to, captured, hadMoved,
+                next.epPawn, next.epRow, next.epCol, prevEP));
         isWhiteTurn = !isWhiteTurn;
         board.notifyObservers(next.piece, next.from, next.to);
     }
@@ -178,35 +230,39 @@ public class GameManager {
 
         List<Position> filtered = new ArrayList<>();
         for (Position to : moving.getLegalMoves(board)) {
-            Piece captured = board.getPiece(to.row, to.col);
-            boolean hadMoved = moving.isHasMoved();
+            Piece    captured = board.getPiece(to.row, to.col);
+            boolean  hadMoved = moving.isHasMoved();
+            Position ep       = board.getEnPassantTarget();
+
+            boolean isEnPassant = moving.getType().equals("Pawn")
+                    && ep != null
+                    && to.row == ep.row && to.col == ep.col
+                    && captured == null;
+            Piece epPawn = isEnPassant ? board.getPiece(from.row, to.col) : null;
 
             board.setPiece(moving,   to.row,   to.col);
             board.setPiece(null,     from.row, from.col);
             moving.setPosition(to.row, to.col);
+            if (isEnPassant) board.setPiece(null, from.row, to.col);
 
-            if (!checkDetector.isInCheck(moving.isWhite())) {
-                filtered.add(to);
-            }
+            if (!checkDetector.isInCheck(moving.isWhite())) filtered.add(to);
 
             board.setPiece(moving,   from.row, from.col);
             board.setPiece(captured, to.row,   to.col);
             moving.setPosition(from.row, from.col);
             moving.setHasMoved(hadMoved);
+            if (isEnPassant) board.setPiece(epPawn, from.row, to.col);
         }
         return filtered;
     }
 
-    /** Returns true if the given side has no legal moves at all. */
     private boolean hasNoLegalMoves(boolean white) {
-        for (int r = 0; r < 8; r++) {
+        for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++) {
                 Piece p = board.getPiece(r, c);
-                if (p != null && p.isWhite() == white) {
-                    if (!getLegalMovesFiltered(new Position(r, c)).isEmpty()) return false;
-                }
+                if (p != null && p.isWhite() == white
+                        && !getLegalMovesFiltered(new Position(r, c)).isEmpty()) return false;
             }
-        }
         return true;
     }
 
@@ -219,11 +275,11 @@ public class GameManager {
     }
 
     public void resetGame() {
-        // Clear all pieces off the board
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++)
                 board.setPiece(null, r, c);
 
+        board.setEnPassantTarget(null);
         doneStack.clear();
         undoStack.clear();
         isWhiteTurn      = true;
@@ -232,6 +288,7 @@ public class GameManager {
         promotionSquare  = null;
         logger.clear();
         initBoard();
+        System.out.println("VERSION: " + VERSION + " — New game started");
     }
 
     public boolean isGameOver()               { return gameOver; }
