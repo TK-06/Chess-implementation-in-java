@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess Project UML and Design Patterns</title>
+    <style>
+        :root {
+            --bg: #f6f2ea;
+            --panel: #fffdf8;
+            --ink: #22201b;
+            --muted: #665f55;
+            --line: #d8cfc1;
+            --accent: #8a5a32;
+            --accent-soft: #efe3d3;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px 20px 56px;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, #fff8ec 0, transparent 28%),
+                linear-gradient(180deg, #f8f4ec 0%, #f1ebdf 100%);
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 36px;
+            box-shadow: 0 18px 45px rgba(69, 48, 22, 0.08);
+        }
+
+        h1, h2, h3 {
+            margin-top: 0;
+            letter-spacing: 0.02em;
+        }
+
+        h1 {
+            font-size: 2.1rem;
+            margin-bottom: 12px;
+        }
+
+        h2 {
+            font-size: 1.45rem;
+            margin-top: 34px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--accent-soft);
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            margin-top: 20px;
+            color: var(--accent);
+        }
+
+        p, li {
+            font-size: 1rem;
+            line-height: 1.6;
+        }
+
+        .intro {
+            color: var(--muted);
+            margin-bottom: 22px;
+        }
+
+        .card {
+            margin-top: 18px;
+            padding: 18px;
+            background: #fffaf2;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+        }
+
+        .mermaid {
+            overflow-x: auto;
+            padding: 12px 0;
+            background: white;
+            border-radius: 10px;
+        }
+
+        code {
+            background: #f2eadf;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.95em;
+        }
+
+        ul {
+            padding-left: 22px;
+        }
+
+        .footer {
+            margin-top: 28px;
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .page {
+                max-width: none;
+                border: 0;
+                box-shadow: none;
+                border-radius: 0;
+                padding: 20px;
+            }
+
+            .card {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="page">
+        <h1>Chess Project UML and Design Patterns</h1>
+        <p class="intro">
+            This page contains a full UML-style class diagram for the chess project and a focused architecture diagram explaining the Observer, Factory, and Singleton patterns used in the codebase.
+        </p>
+
+        <h2>Full UML Class Diagram</h2>
+        <section class="card">
+            <div class="mermaid">
+classDiagram
+    direction TB
+
+    class Position {
+        +row : int
+        +col : int
+        +Position(row, col)
+        +isValid() boolean
+        +equals(obj) boolean
+        +hashCode() int
+    }
+
+    class Board {
+        -table : Piece[][]
+        -observers : ArrayList~GameObserver~
+        -enPassantTarget : Position
+        +getEnPassantTarget() Position
+        +setEnPassantTarget(p : Position) void
+        +addObserver(o : GameObserver) void
+        +removeObserver(o : GameObserver) void
+        +notifyObservers(p : Piece, from : Position, to : Position) void
+        +movePiece(from : Position, to : Position) void
+        +setPiece(p : Piece, row : int, col : int) void
+        +getPiece(row : int, col : int) Piece
+        +isEmpty(row : int, col : int) boolean
+    }
+
+    class Piece {
+        <<abstract>>
+        +row : int
+        +col : int
+        +isWhite : boolean
+        +hasMoved : boolean
+        +Piece(r, c, isW)
+        +getLegalMoves(board : Board) ArrayList~Position~
+        +getType() String
+        +isWhite() boolean
+        +getRow() int
+        +getCol() int
+        +setPosition(row : int, col : int) void
+        +isSameColor(other : Piece) boolean
+        +setHasMoved(hasMoved : boolean) void
+        +isHasMoved() boolean
+    }
+
+    class King
+    class Queen
+    class Rook
+    class Bishop
+    class Knight
+    class Pawn
+
+    class PieceFactory {
+        -PieceFactory()
+        +create(type : String, row : int, col : int, isWhite : boolean) Piece
+    }
+
+    class GameObserver {
+        <<interface>>
+        +moveMade(p : Piece, from : Position, to : Position) void
+    }
+
+    class MoveLogger {
+        -movesHistory : ArrayList~String~
+        +moveMade(p : Piece, from : Position, to : Position) void
+        +printMoves() void
+        +getHistory() ArrayList~String~
+        +clear() void
+    }
+
+    class CheckDetector {
+        -board : Board
+        +CheckDetector(board : Board)
+        +moveMade(p : Piece, from : Position, to : Position) void
+        +isInCheck(isWhiteKing : boolean) boolean
+    }
+
+    class MoveRecord {
+        +piece : Piece
+        +from : Position
+        +to : Position
+        +captured : Piece
+        +hadMoved : boolean
+        +epPawn : Piece
+        +epRow : int
+        +epCol : int
+        +prevEnPassantTarget : Position
+        +MoveRecord(piece, from, to, captured, hadMoved, epPawn, epRow, epCol, prevEP)
+    }
+
+    class GameManager {
+        <<singleton>>
+        +VERSION : String
+        -instance : GameManager
+        -board : Board
+        -isWhiteTurn : boolean
+        -logger : MoveLogger
+        -checkDetector : CheckDetector
+        -doneStack : Stack~MoveRecord~
+        -undoStack : Stack~MoveRecord~
+        -gameOver : boolean
+        -pendingPromotion : boolean
+        -promotionSquare : Position
+        -promotionIsWhite : boolean
+        -GameManager()
+        +getInstance() GameManager
+        +makeMove(from : Position, to : Position) boolean
+        +promote(pieceType : String) void
+        +undo() void
+        +redo() void
+        +getLegalMovesFiltered(from : Position) List~Position~
+        +isCheckmate(white : boolean) boolean
+        +isStalemate(white : boolean) boolean
+        +resetGame() void
+        +isGameOver() boolean
+        +getBoard() Board
+        +isWhiteTurn() boolean
+        +getLogger() MoveLogger
+        +getCheckDetector() CheckDetector
+    }
+
+    class BoardPanel {
+        -TILE_SIZE : int
+        -board : Board
+        -gm : GameManager
+        -selected : Position
+        -highlights : List~Position~
+        -onPromotionComplete : Runnable
+        +BoardPanel()
+        +setOnPromotionComplete(r : Runnable) void
+        +clearSelection() void
+    }
+
+    class ChessGUI {
+        -boardPanel : BoardPanel
+        -statusLabel : JLabel
+        -gameOverShown : boolean
+        +ChessGUI()
+        +moveMade(p : Piece, from : Position, to : Position) void
+    }
+
+    class Main {
+        +main(args : String[]) void
+    }
+
+    Piece <|-- King
+    Piece <|-- Queen
+    Piece <|-- Rook
+    Piece <|-- Bishop
+    Piece <|-- Knight
+    Piece <|-- Pawn
+
+    GameObserver <|.. MoveLogger
+    GameObserver <|.. CheckDetector
+    GameObserver <|.. ChessGUI
+
+    Board "1" *-- "0..32" Piece : stores
+    Board "1" o-- "0..*" GameObserver : notifies
+    Board --> Position : uses
+
+    MoveRecord --> Piece
+    MoveRecord --> Position
+
+    CheckDetector --> Board : reads
+    MoveLogger --> Piece : logs
+
+    GameManager *-- Board
+    GameManager *-- MoveLogger
+    GameManager *-- CheckDetector
+    GameManager o-- MoveRecord
+    GameManager ..> PieceFactory : creates pieces through
+    GameManager --> Position : uses
+
+    BoardPanel --> GameManager : uses
+    BoardPanel --> Board : renders
+    ChessGUI *-- BoardPanel
+
+    Main ..> GameManager : gets singleton
+    Main ..> ChessGUI : starts GUI
+            </div>
+        </section>
+
+        <h2>Design Patterns Diagram</h2>
+        <section class="card">
+            <div class="mermaid">
+flowchart TD
+    subgraph Singleton["Singleton Pattern"]
+        M1["GameManager\nprivate constructor\nstatic instance\ngetInstance()"]
+        MAIN["Main"]
+        GUI["ChessGUI"]
+        PANEL["BoardPanel"]
+        MAIN -->|"GameManager.getInstance()"| M1
+        GUI -->|"GameManager.getInstance()"| M1
+        PANEL -->|"GameManager.getInstance()"| M1
+    end
+
+    subgraph Factory["Factory Pattern"]
+        PF["PieceFactory.create(type, row, col, isWhite)"]
+        GM["GameManager.initBoard()\nand promote()"]
+        P["Piece"]
+        K["King"]
+        Q["Queen"]
+        R["Rook"]
+        B["Bishop"]
+        N["Knight"]
+        PA["Pawn"]
+        GM --> PF
+        PF --> K
+        PF --> Q
+        PF --> R
+        PF --> B
+        PF --> N
+        PF --> PA
+        K --> P
+        Q --> P
+        R --> P
+        B --> P
+        N --> P
+        PA --> P
+    end
+
+    subgraph Observer["Observer Pattern"]
+        BOARD["Board\nSubject"]
+        OBS["GameObserver\nInterface"]
+        LOG["MoveLogger"]
+        CHECK["CheckDetector"]
+        CGUI["ChessGUI"]
+        BOARD -->|"notifyObservers(move)"| OBS
+        LOG -.implements .-> OBS
+        CHECK -.implements .-> OBS
+        CGUI -.implements .-> OBS
+    end
+
+    M1 --> BOARD
+    M1 --> PF
+            </div>
+        </section>
+
+        <h2>How Each Pattern Is Implemented</h2>
+
+        <h3>Observer Pattern</h3>
+        <ul>
+            <li><code>Board</code> is the subject because it stores and notifies a list of <code>GameObserver</code> objects.</li>
+            <li><code>MoveLogger</code>, <code>CheckDetector</code>, and <code>ChessGUI</code> all implement <code>GameObserver</code>.</li>
+            <li>This keeps logging, check detection, and GUI updates separate from the board state itself.</li>
+        </ul>
+
+        <h3>Factory Pattern</h3>
+        <ul>
+            <li><code>PieceFactory.create(...)</code> is the single construction point for all chess pieces.</li>
+            <li><code>GameManager.initBoard()</code> and <code>GameManager.promote(...)</code> both use the factory.</li>
+            <li>This avoids spreading piece constructor logic throughout the project.</li>
+        </ul>
+
+        <h3>Singleton Pattern</h3>
+        <ul>
+            <li><code>GameManager</code> has a private constructor and a static <code>instance</code> field.</li>
+            <li><code>getInstance()</code> returns one shared game controller for the whole app.</li>
+            <li><code>Main</code>, <code>ChessGUI</code>, and <code>BoardPanel</code> all use the same shared object.</li>
+        </ul>
+
+        <p class="footer">
+            Exported from the chess project documentation. If Mermaid diagrams do not render immediately, open the page with an internet connection so the Mermaid library can load.
+        </p>
+    </main>
+
+    <script type="module">
+        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: "base",
+            themeVariables: {
+                primaryColor: "#f6ead7",
+                primaryTextColor: "#2a241d",
+                primaryBorderColor: "#8a5a32",
+                lineColor: "#6d5f50",
+                secondaryColor: "#fff7ea",
+                tertiaryColor: "#f0e1cf",
+                fontFamily: "Georgia, serif"
+            }
+        });
+    </script>
+</body>
+</html>

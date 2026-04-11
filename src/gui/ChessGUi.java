@@ -69,11 +69,16 @@ public class ChessGUI extends JFrame implements GameObserver {
             if (gm.isCheckmate(nextIsWhite)) {
                 statusLabel.setText("CHECKMATE! " + winningSide + " wins!");
                 statusLabel.setForeground(new Color(180, 0, 0));
-                message = "GAME ENDS!\n" + winningSide + " WIN!";
-            } else {
+                message = "GAME ENDS!\n" + winningSide + " WINS!";
+            } else if (gm.isStalemate(nextIsWhite)) {
                 statusLabel.setText("STALEMATE! It's a draw!");
                 statusLabel.setForeground(new Color(0, 100, 180));
-                message = "GAME ENDS!\nIt's a draw!";
+                message = "GAME ENDS!\nStalemate — it's a draw!";
+            } else {
+                // Draw by insufficient material (K vs K, K+minor vs K, same-colour bishops, ...)
+                statusLabel.setText("DRAW by insufficient material");
+                statusLabel.setForeground(new Color(0, 100, 180));
+                message = "GAME ENDS!\nDraw by insufficient material.";
             }
             Object[] options = {"New Game", "Close"};
             int choice = JOptionPane.showOptionDialog(this,
@@ -83,6 +88,8 @@ public class ChessGUI extends JFrame implements GameObserver {
                     null, options, options[0]);
             if (choice == 0) startNewGame();
         } else if (!gm.isGameOver()) {
+            // Reset so a future game-over popup fires again (e.g. after Undo)
+            gameOverShown = false;
             if (gm.getCheckDetector().isInCheck(nextIsWhite)) {
                 statusLabel.setText(currentSide + " King is in CHECK!");
                 statusLabel.setForeground(Color.RED);

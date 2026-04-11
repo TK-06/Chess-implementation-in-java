@@ -107,15 +107,14 @@ public class GameManager {
             board.setEnPassantTarget(null);
         }
 
-        // ⑥ finalize
+        // ⑥ finalize: record the move and flip turn
         moving.setHasMoved(true);
         doneStack.push(new MoveRecord(moving, from, to, captured, hadMoved,
                 epPawn, epRow, epCol, prevEP));
         undoStack.clear();
         isWhiteTurn = !isWhiteTurn;
-        board.notifyObservers(moving, from, to);
 
-        // ⑦ pawn promotion — pause game until player picks a piece
+        // ⑦ pawn promotion detection — pause game until player picks a piece
         if (moving.getType().equals("Pawn")) {
             int backRank = moving.isWhite() ? 7 : 0;
             if (to.row == backRank) {
@@ -125,11 +124,33 @@ public class GameManager {
             }
         }
 
-        // ⑧ check for checkmate / stalemate (only after promotion is resolved)
-        if (!pendingPromotion && (isCheckmate(isWhiteTurn) || isStalemate(isWhiteTurn))) {
-            gameOver = true;
-        }
+        // ⑧ evaluate game-ending state BEFORE observers fire
+        // (so ChessGUI.updateStatus sees the correct gameOver flag)
+        if (!pendingPromotion) checkGameEnd();
+
+        // ⑨ notify observers — they now see the final post-move state
+        board.notifyObservers(moving, from, to);
         return true;
+    }
+
+    /**
+     * Inspects the post-move board and decides if the game has ended.
+     * Sets {@code gameOver} and prints an appropriate console message.
+     * Covers checkmate, stalemate, and draw by insufficient material.
+     */
+    private void checkGameEnd() {
+        String winningSide = isWhiteTurn ? "Black" : "White";
+
+        if (isCheckmate(isWhiteTurn)) {
+            gameOver = true;
+            System.out.println("CHECKMATE! " + winningSide + " wins!");
+        } else if (isStalemate(isWhiteTurn)) {
+            gameOver = true;
+            System.out.println("STALEMATE! It's a draw.");
+        } else if (isInsufficientMaterial()) {
+            gameOver = true;
+            System.out.println("DRAW by insufficient material.");
+        }
     }
 
     /** Called by BoardPanel when the player clicks a promotion choice. */
@@ -147,16 +168,13 @@ public class GameManager {
         pendingPromotion = false;
         promotionSquare  = null;
 
-        String currentSide = isWhiteTurn ? "White" : "Black";
-        String winningSide  = isWhiteTurn ? "Black" : "White";
+        // Re-evaluate game state now that the promoted piece is on the board
+        checkGameEnd();
 
-        if (isCheckmate(isWhiteTurn)) {
-            gameOver = true;
-            System.out.println("CHECKMATE! " + winningSide + " wins!");
-        } else if (isStalemate(isWhiteTurn)) {
-            gameOver = true;
-            System.out.println("STALEMATE! It's a draw.");
-        } else if (checkDetector.isInCheck(isWhiteTurn)) {
+        // Announce check here too (CheckDetector already fired for the original pawn move,
+        // so this is the only place a post-promotion check can be reported)
+        if (!gameOver && checkDetector.isInCheck(isWhiteTurn)) {
+            String currentSide = isWhiteTurn ? "White" : "Black";
             System.out.println(currentSide + " King is in CHECK!");
         }
     }
@@ -276,6 +294,54 @@ public class GameManager {
         return !checkDetector.isInCheck(white) && hasNoLegalMoves(white);
     }
 
+    /**
+     * Detects the main "dead position" draws under FIDE rules:
+     *   • K vs K
+     *   • K + minor (B or N) vs K
+     *   • K + B vs K + B where both bishops sit on the same colour square
+     * Pawns, rooks and queens always leave enough material to force mate.
+     */
+    public boolean isInsufficientMaterial() {
+        List<Piece> whites = new ArrayList<>();
+        List<Piece> blacks = new ArrayList<>();
+        for (int r = 0; r < 8; r++)
+            for (int c = 0; c < 8; c++) {
+                Piece p = board.getPiece(r, c);
+                if (p == null) continue;
+                (p.isWhite() ? whites : blacks).add(p);
+            }
+
+        // Any pawn, rook, or queen means mate is still forceable
+        for (Piece p : whites) {
+            String t = p.getType();
+            if (t.equals("Pawn") || t.equals("Rook") || t.equals("Queen")) return false;
+        }
+        for (Piece p : blacks) {
+            String t = p.getType();
+            if (t.equals("Pawn") || t.equals("Rook") || t.equals("Queen")) return false;
+        }
+
+        int wMinor = whites.size() - 1;  // minus king
+        int bMinor = blacks.size() - 1;
+
+        // K vs K
+        if (wMinor == 0 && bMinor == 0) return true;
+        // K+B or K+N vs K
+        if (wMinor + bMinor == 1)       return true;
+        // K+B vs K+B with same-colour bishops
+        if (wMinor == 1 && bMinor == 1) {
+            Piece wb = null, bb = null;
+            for (Piece p : whites) if (p.getType().equals("Bishop")) wb = p;
+            for (Piece p : blacks) if (p.getType().equals("Bishop")) bb = p;
+            if (wb != null && bb != null) {
+                int wSq = (wb.getRow() + wb.getCol()) & 1;
+                int bSq = (bb.getRow() + bb.getCol()) & 1;
+                if (wSq == bSq) return true;
+            }
+        }
+        return false;
+    }
+
     public void resetGame() {
         for (int r = 0; r < 8; r++)
             for (int c = 0; c < 8; c++)
@@ -288,6 +354,7 @@ public class GameManager {
         gameOver         = false;
         pendingPromotion = false;
         promotionSquare  = null;
+        promotionIsWhite = false;
         logger.clear();
         initBoard();
         System.out.println("VERSION: " + VERSION + " — New game started");

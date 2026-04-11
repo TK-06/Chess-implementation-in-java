@@ -2,6 +2,7 @@
 package observer;
 
 import board.Position;
+import manager.GameManager;
 import pieces.Piece;
 import board.Board;
 
@@ -15,6 +16,11 @@ public class CheckDetector implements GameObserver {
 
     @Override
     public void moveMade(Piece p, Position from, Position to) {
+        // Game-ending states are printed by GameManager.checkGameEnd().
+        // Skip the CHECK print in that case so we don't say "CHECK!" right
+        // before "CHECKMATE!" on the same move.
+        if (GameManager.getInstance().isGameOver()) return;
+
         boolean opponentIsWhite = !p.isWhite();
         if (isInCheck(opponentIsWhite)) {
             System.out.println((opponentIsWhite ? "White" : "Black") + " King is in CHECK!");

@@ -1,0 +1,143 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2228 >>
+stream
+BT
+/F1 13 Tf
+50 810 Td
+(Chess Project UML and Design Patterns) Tj
+/F1 10 Tf
+1 0 0 1 50 780 Tm
+() Tj
+1 0 0 1 50 762 Tm
+(This PDF is a companion export for the chess project diagrams.) Tj
+1 0 0 1 50 744 Tm
+(The full rendered Mermaid diagrams are available in:) Tj
+1 0 0 1 50 726 Tm
+(uml-and-patterns.html) Tj
+1 0 0 1 50 708 Tm
+() Tj
+1 0 0 1 50 690 Tm
+(Files generated in docs folder:) Tj
+1 0 0 1 50 672 Tm
+(- uml-and-patterns.md) Tj
+1 0 0 1 50 654 Tm
+(- uml-and-patterns.html) Tj
+1 0 0 1 50 636 Tm
+(- uml-and-patterns.pdf) Tj
+1 0 0 1 50 618 Tm
+() Tj
+1 0 0 1 50 600 Tm
+(Project overview) Tj
+1 0 0 1 50 582 Tm
+(- Packages: board, pieces, factory, observer, manager, gui) Tj
+1 0 0 1 50 564 Tm
+(- Main controller: GameManager) Tj
+1 0 0 1 50 546 Tm
+(- Board state lives in Board) Tj
+1 0 0 1 50 528 Tm
+(- UI lives in ChessGUI and BoardPanel) Tj
+1 0 0 1 50 510 Tm
+() Tj
+1 0 0 1 50 492 Tm
+(Design patterns implemented) Tj
+1 0 0 1 50 474 Tm
+() Tj
+1 0 0 1 50 456 Tm
+(1. Observer Pattern) Tj
+1 0 0 1 50 438 Tm
+(- Board acts as the subject.) Tj
+1 0 0 1 50 420 Tm
+(- Board stores GameObserver listeners.) Tj
+1 0 0 1 50 402 Tm
+(- Board.notifyObservers\(...\) broadcasts completed moves.) Tj
+1 0 0 1 50 384 Tm
+(- MoveLogger, CheckDetector, and ChessGUI implement GameObserver.) Tj
+1 0 0 1 50 366 Tm
+(- This separates move logging, check detection, and UI refresh work from board storage.) Tj
+1 0 0 1 50 348 Tm
+() Tj
+1 0 0 1 50 330 Tm
+(2. Factory Pattern) Tj
+1 0 0 1 50 312 Tm
+(- PieceFactory.create\(type, row, col, isWhite\) is the central piece-creation method.) Tj
+1 0 0 1 50 294 Tm
+(- GameManager.initBoard\(\) uses it to create the starting position.) Tj
+1 0 0 1 50 276 Tm
+(- GameManager.promote\(...\) uses it to create promoted pieces.) Tj
+1 0 0 1 50 258 Tm
+(- This avoids scattering direct constructor calls throughout the codebase.) Tj
+1 0 0 1 50 240 Tm
+() Tj
+1 0 0 1 50 222 Tm
+(3. Singleton Pattern) Tj
+1 0 0 1 50 204 Tm
+(- GameManager has a private constructor.) Tj
+1 0 0 1 50 186 Tm
+(- GameManager stores a static instance.) Tj
+1 0 0 1 50 168 Tm
+(- GameManager.getInstance\(\) returns one shared controller object.) Tj
+1 0 0 1 50 150 Tm
+(- Main, ChessGUI, and BoardPanel all use that same shared state.) Tj
+1 0 0 1 50 132 Tm
+() Tj
+ET
+endstream
+endobj
+3 0 obj
+<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+4 0 obj
+<< /Length 648 >>
+stream
+BT
+/F1 13 Tf
+50 810 Td
+(UML coverage summary) Tj
+/F1 10 Tf
+1 0 0 1 50 780 Tm
+(- Position is a value object for row and column coordinates.) Tj
+1 0 0 1 50 762 Tm
+(- Piece is the abstract superclass for King, Queen, Rook, Bishop, Knight, and Pawn.) Tj
+1 0 0 1 50 744 Tm
+(- MoveRecord stores undo/redo snapshots.) Tj
+1 0 0 1 50 726 Tm
+(- CheckDetector depends on Board to inspect check state.) Tj
+1 0 0 1 50 708 Tm
+(- GameManager composes Board, MoveLogger, and CheckDetector.) Tj
+1 0 0 1 50 690 Tm
+(- ChessGUI composes BoardPanel.) Tj
+1 0 0 1 50 672 Tm
+() Tj
+1 0 0 1 50 654 Tm
+(For the visual diagrams, open uml-and-patterns.html in a browser.) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 842] /Resources << /Font << /F1 1 0 R >> >> /Contents 4 0 R >>
+endobj
+6 0 obj
+<< /Type /Pages /Count 2 /Kids [ 3 0 R 5 0 R ] >>
+endobj
+7 0 obj
+<< /Type /Catalog /Pages 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000002359 00000 n 
+0000002485 00000 n 
+0000003184 00000 n 
+0000003310 00000 n 
+0000003375 00000 n 
+trailer
+<< /Size 8 /Root 7 0 R >>
+startxref
+3424
+%%EOF
